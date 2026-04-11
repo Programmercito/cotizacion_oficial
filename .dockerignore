@@ -1,0 +1,11 @@
+node_modules
+test-results
+playwright-report
+blob-report
+.git
+.env
+# Ignore any local sqlite files if they exist in the project dir
+*.db
+*.sqlite
+# The directory you mount should also be ignored if it's inside the workspace
+opt/osbo
