@@ -1,0 +1,44 @@
+name: Deploy Cotizaciones Oficial
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4    
+      
+    - name: Config SSH
+      run: |
+        mkdir -p ~/.ssh
+        touch ~/.ssh/known_hosts
+        ssh-keyscan -H ${{ secrets.SERVER }} >> ~/.ssh/known_hosts
+        
+    - name: Deploy and build image
+      run: |
+        echo "${{ secrets.KEY }}" > ./private_key
+        chmod 600 ./private_key
+        
+        # Limpiar y copiar el nuevo código fuente al servidor
+        ssh -o StrictHostKeyChecking=no -i ./private_key ${{ secrets.USER }}@${{ secrets.SERVER }} "mkdir -p /opt/cotizacion_oficial && rm -rf /opt/cotizacion_oficial/*"
+        scp -o StrictHostKeyChecking=no -i ./private_key -r ./* ${{ secrets.USER }}@${{ secrets.SERVER }}:/opt/cotizacion_oficial
+        
+        # Actualizar el repositorio de configuraciones (dockers y k8s)
+        ssh -o StrictHostKeyChecking=no -i ./private_key ${{ secrets.USER }}@${{ secrets.SERVER }} "cd /opt/codes/bot-dockers && git pull"
+        
+        # Opcional: Si el Dockerfile debe venir del repo bot-dockers (como en tu ejemplo)
+        # ssh -o StrictHostKeyChecking=no -i ./private_key ${{ secrets.USER }}@${{ secrets.SERVER }} "cp /opt/codes/bot-dockers/cotizacion_oficial/docker/Dockerfile /opt/cotizacion_oficial/"
+        
+        # Construir la imagen Docker usando el Dockerfile en la raíz de /opt/cotizacion_oficial
+        ssh -o StrictHostKeyChecking=no -i ./private_key ${{ secrets.USER }}@${{ secrets.SERVER }} "docker build -t localhost:32000/cotizacion_oficial:latest -f /opt/cotizacion_oficial/Dockerfile /opt/cotizacion_oficial/"
+        
+        # Subir al registro local de microk8s
+        ssh -o StrictHostKeyChecking=no -i ./private_key ${{ secrets.USER }}@${{ secrets.SERVER }} "docker push localhost:32000/cotizacion_oficial:latest" 
+        
+        # Actualizar Kubernetes (microk8s)
+        ssh -o StrictHostKeyChecking=no -i ./private_key ${{ secrets.USER }}@${{ secrets.SERVER }} "microk8s kubectl apply -f /opt/codes/bot-dockers/bcb/kub/services.yaml"
