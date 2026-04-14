@@ -89,9 +89,9 @@ test('extraer tipos de cambio bcb y guardar en sqlite', async ({ page }) => {
 
     const dateElements = card.locator('.bcb-kpi2-asof time');
     const datesCount = await dateElements.count();
-    
-    for (let j = 0; j < datesCount; j++) {
-      const rawDate = await dateElements.nth(j).innerText();
+
+    if (datesCount > 0) {
+      const rawDate = await dateElements.first().innerText();
       const dbDate = parseSpanishDate(rawDate.trim());
 
       const dataRows = card.locator('.bcb-row');
@@ -112,6 +112,27 @@ test('extraer tipos de cambio bcb y guardar en sqlite', async ({ page }) => {
       console.log(`Guardando registro: moneda=${moneda}, datetime=${dbDate}, exchange=bcb, cotizacion=${venta}, purchase=${compra}`);
       
       insert.run(moneda, venta, dbDate, 'bcb', compra);
+    } else {
+      const dataRows = card.locator('.bcb-row');
+      const rowsCount = await dataRows.count();
+
+      for (let k = 0; k < rowsCount; k++) {
+        const row = dataRows.nth(k);
+        const rawDate = await row.locator('.bcb-lbl').first().innerText();
+        const dbDate = parseSpanishDate(rawDate.trim());
+
+        const values = await row.locator('.bcb-val').allInnerTexts();
+        const nums = values.map(cleanNumeric).filter((n) => !Number.isNaN(n));
+
+        if (nums.length >= 2) {
+          const compra = nums[0];
+          const venta = nums[1];
+          console.log(`Guardando registro: moneda=${moneda}, datetime=${dbDate}, exchange=bcb, cotizacion=${venta}, purchase=${compra}`);
+          insert.run(moneda, venta, dbDate, 'bcb', compra);
+        } else {
+          console.warn(`No se pudo parsear fila oficial para ${moneda} en fecha ${dbDate}`);
+        }
+      }
     }
   }
 
