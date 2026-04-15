@@ -51,18 +51,6 @@ test('extraer tipos de cambio bcb y guardar en sqlite', async ({ page }) => {
 
   const db = new Database(dbPath);
 
-  // Crear tabla según definición del usuario
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS cotizaciones (
-      moneda TEXT,
-      cotizacion NUMERIC,
-      datetime TEXT,
-      exchange TEXT,
-      purchase NUMERIC DEFAULT (0),
-      CONSTRAINT cotizacion_PK PRIMARY KEY (datetime, exchange, moneda)
-    );
-  `);
-
   await page.goto('https://www.bcb.gob.bo/');
 
   const row = page.locator('.bcb-kpi2-row');
