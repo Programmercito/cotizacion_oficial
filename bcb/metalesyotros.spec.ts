@@ -51,8 +51,8 @@ test('extraer metales y otras cotizaciones bcb y guardar en sqlite', async ({ pa
   console.log(`Fecha de cotización: ${dbDate}`);
 
   const insert = db.prepare(`
-    INSERT OR REPLACE INTO cotizaciones (moneda, cotizacion, datetime, exchange, purchase)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO cotizaciones (moneda, cotizacion, datetime, exchange, purchase,moneda_dest)
+    VALUES (?, ?, ?, ?, ?,?)
   `);
 
   const rows = page.locator('table tr');
@@ -76,7 +76,7 @@ test('extraer metales y otras cotizaciones bcb y guardar en sqlite', async ({ pa
         const value = cleanNumeric(valueStr);
         if (!isNaN(value) && value > 0) {
           console.log(`Guardando: moneda=eur, datetime=${dbDate}, cotizacion=${value}, purchase=${value}`);
-          insert.run('eur', value, dbDate, 'bcb', value);
+          insert.run('eur', value, dbDate, 'bcb', value,'BOB');
         }
       }
     }
@@ -91,7 +91,7 @@ test('extraer metales y otras cotizaciones bcb y guardar en sqlite', async ({ pa
         .find((n) => !isNaN(n) && n > 0);
       if (lastNumericVal !== undefined) {
         console.log(`Guardando: moneda=ufv, datetime=${dbDate}, cotizacion=${lastNumericVal}, purchase=${lastNumericVal}`);
-        insert.run('ufv', lastNumericVal, dbDate, 'bcb', lastNumericVal);
+        insert.run('ufv', lastNumericVal, dbDate, 'bcb', lastNumericVal,'BOB');
       }
     }
 
@@ -104,7 +104,7 @@ test('extraer metales y otras cotizaciones bcb y guardar en sqlite', async ({ pa
         .find((n) => !isNaN(n) && n > 0);
       if (lastNumericVal !== undefined) {
         console.log(`Guardando: moneda=oro, datetime=${dbDate}, cotizacion=${lastNumericVal}, purchase=${lastNumericVal}`);
-        insert.run('oro', lastNumericVal, dbDate, 'bcb', lastNumericVal);
+        insert.run('oro', lastNumericVal, dbDate, 'bcb', lastNumericVal,'USD');
       }
     }
 
@@ -117,7 +117,7 @@ test('extraer metales y otras cotizaciones bcb y guardar en sqlite', async ({ pa
         .find((n) => !isNaN(n) && n > 0);
       if (lastNumericVal !== undefined) {
         console.log(`Guardando: moneda=plata, datetime=${dbDate}, cotizacion=${lastNumericVal}, purchase=${lastNumericVal}`);
-        insert.run('plata', lastNumericVal, dbDate, 'bcb', lastNumericVal);
+        insert.run('plata', lastNumericVal, dbDate, 'bcb', lastNumericVal,'USD');
       }
     }
   }
