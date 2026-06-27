@@ -44,6 +44,8 @@ function cleanNumeric(val: string): number {
 }
 
 test('extraer tipos de cambio bcb y guardar en sqlite', async ({ page }) => {
+  test.setTimeout(60000);
+
   const dbPath = process.env.base;
   if (!dbPath) {
     throw new Error('La variable environment "base" no está definida en el .env');
@@ -52,6 +54,7 @@ test('extraer tipos de cambio bcb y guardar en sqlite', async ({ page }) => {
   const db = new Database(dbPath);
 
   await page.goto('https://www.bcb.gob.bo/');
+  await page.waitForLoadState('networkidle');
 
   const row = page.locator('.bcb-kpi2-row');
   await row.waitFor();
@@ -97,6 +100,22 @@ test('extraer tipos de cambio bcb y guardar en sqlite', async ({ page }) => {
         if (label.includes('venta')) venta = value;
       }
 
+      // Fallback para la card oficial cuando solo muestra un valor global
+      if (venta === 0 && compra === 0 && moneda === 'usd oficial') {
+        const singleValueText = await card.locator('.bcb-val, .bcb-kpi2-val, .bcb-kpi2-value, .bcb-tco-num').first().innerText().catch(() => '');
+        const singleValue = cleanNumeric(singleValueText);
+        if (!Number.isNaN(singleValue) && singleValue > 0) {
+          venta = singleValue;
+          compra = singleValue;
+        }
+      }
+
+      // Si no se encontró ningún valor, se omite el registro como si ese día no hubiera cotización
+      if (venta === 0 && compra === 0) {
+        console.warn(`No se encontraron valores para ${moneda} en fecha ${dbDate}, se omite el registro.`);
+        continue;
+      }
+
       console.log(`Guardando registro: moneda=${moneda}, datetime=${dbDate}, exchange=bcb, cotizacion=${venta}, purchase=${compra}`);
       
       insert.run(moneda, venta, dbDate, 'bcb', compra);
@@ -115,6 +134,13 @@ test('extraer tipos de cambio bcb y guardar en sqlite', async ({ page }) => {
         if (nums.length >= 2) {
           const compra = nums[0];
           const venta = nums[1];
+
+          // Si ambos valores son 0, se omite el registro
+          if (venta === 0 && compra === 0) {
+            console.warn(`No se encontraron valores para ${moneda} en fecha ${dbDate}, se omite el registro.`);
+            continue;
+          }
+
           console.log(`Guardando registro: moneda=${moneda}, datetime=${dbDate}, exchange=bcb, cotizacion=${venta}, purchase=${compra}`);
           insert.run(moneda, venta, dbDate, 'bcb', compra);
         } else {
