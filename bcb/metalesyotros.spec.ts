@@ -27,7 +27,7 @@ function parseSpanishDate(dateStr: string): string {
 }
 
 function cleanNumeric(val: string): number {
-  // Remove thousands separators (commas) and keep decimal dots
+  // Punto como separador decimal y coma como separador de miles
   return parseFloat(val.replace(/,/g, '').replace(/[^-0-9.]/g, ''));
 }
 
